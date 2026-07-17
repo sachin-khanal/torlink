@@ -3,6 +3,7 @@ import { Box, Text, useInput } from "ink";
 import { useStore, CATEGORIES } from "../store";
 import { Spinner } from "./Spinner";
 import { SearchBar } from "./SearchBar";
+import { TextField } from "./TextField";
 import { Panel } from "./Panel";
 import { Rule } from "./Rule";
 import { useConcurrentSearch } from "../hooks/useConcurrentSearch";
@@ -14,7 +15,7 @@ import { COLOR, GUTTER, ICON, sourceStyle } from "../theme";
 import { cleanText, formatBytes, formatCount, formatRelative, stripControl, truncate } from "../../util/format";
 import type { Source, TorrentResult } from "../../sources/types";
 
-type Mode = "list" | "search" | "detail";
+type Mode = "list" | "search" | "detail" | "filter";
 
 const PLACEHOLDER = "Search or paste a magnet link…";
 
@@ -128,13 +129,14 @@ export function Results() {
 
   const [sort, setSort] = useState<Sort>("none");
   const [hideDead, setHideDead] = useState(false);
+  const [textFilter, setTextFilter] = useState("");
   const results = useMemo(() => {
     const cat = CATEGORIES.find((c) => c.key === section);
     const base = cat?.group
       ? search.results.filter((r) => getSource(r.source).groups?.includes(cat.group!))
       : search.results;
-    return sortResults(filterResults(base, hideDead), sort);
-  }, [search.results, section, sort, hideDead]);
+    return sortResults(filterResults(base, hideDead, textFilter), sort);
+  }, [search.results, section, sort, hideDead, textFilter]);
 
   const focused = region === "content";
   const [mode, setMode] = useState<Mode>("list");
@@ -151,11 +153,12 @@ export function Results() {
   useEffect(() => {
     selRef.current = null;
     setCursor(0);
+    setTextFilter("");
   }, [query, section]);
 
   useEffect(() => {
     if (!focused) return;
-    setCaptureMode(mode === "search" ? "text" : mode === "detail" ? "esc" : "none");
+    setCaptureMode(mode === "search" || mode === "filter" ? "text" : mode === "detail" ? "esc" : "none");
     return () => setCaptureMode("none");
   }, [mode, focused, setCaptureMode]);
 
@@ -166,7 +169,8 @@ export function Results() {
   const clamped = Math.min(cursor, Math.max(0, results.length - 1));
 
   const searchH = 3;
-  const panelOuter = resultsPanelOuter(listRows, searchH);
+  const filterH = mode === "filter" || textFilter ? 1 : 0;
+  const panelOuter = resultsPanelOuter(listRows, searchH + filterH);
   const listHeight = Math.max(3, panelOuter - 4);
   const pageJump = Math.max(1, listHeight - 1);
 
@@ -230,6 +234,8 @@ export function Results() {
         setSort((cur) => nextSort(cur));
       } else if (input === "z") {
         setHideDead((on) => !on);
+      } else if (input === "f") {
+        setMode("filter");
       }
     },
     { isActive: focused && mode === "list" },
@@ -251,7 +257,7 @@ export function Results() {
     (_input, key) => {
       if (key.escape) setMode("list");
     },
-    { isActive: focused && mode === "search" },
+    { isActive: focused && (mode === "search" || mode === "filter") },
   );
 
   const onSubmit = (value: string): void => {
@@ -467,6 +473,25 @@ export function Results() {
             </>
           )}
         </Panel>
+        {(mode === "filter" || textFilter) && (
+          <Box marginLeft={1}>
+            <Text color={COLOR.accent}>{`Filter ${ICON.pointer} `}</Text>
+            <Box flexGrow={1} minWidth={0}>
+              {mode === "filter" ? (
+                <TextField
+                  defaultValue={textFilter}
+                  width={Math.max(1, contentWidth - 10)}
+                  onChange={setTextFilter}
+                  onSubmit={() => setMode("list")}
+                  onExitDown={() => setMode("list")}
+                  onExitLeft={() => setMode("list")}
+                />
+              ) : (
+                <Text wrap="truncate-end">{textFilter}</Text>
+              )}
+            </Box>
+          </Box>
+        )}
       </Box>
     </Box>
   );
