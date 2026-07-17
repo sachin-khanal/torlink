@@ -69,7 +69,6 @@ export function Downloads() {
       if (key.upArrow || input === "k") setCursor(wrapStep(clamped, -1, total));
       else if (key.downArrow || input === "j") setCursor(wrapStep(clamped, 1, total));
       else if (input === "f") queue.retryFailed();
-      else if (input === "x") queue.clearHistory();
       else if (input === "e") {
         const dir = inActive ? active[clamped]?.dir : recent[recentCursor]?.dir;
         if (dir) openDownloadFolder(dir);
@@ -93,6 +92,9 @@ export function Downloads() {
             sizeBytes: h.sizeBytes,
           });
         else if (input === "c") queue.removeHistory(h.id);
+        // Clear-all lives here, not at the top of the chain, so it can only
+        // fire while the cursor is actually on the recent list.
+        else if (input === "C") queue.clearHistory();
       }
     },
     { isActive: focused && total > 0 },

@@ -101,20 +101,35 @@ export function renderUI(node: ReactNode, opts: { cols?: number; rows?: number }
   };
 }
 
-function fakeQueue(
+// Functional enough for panel tests: history mutations emit "update" so the
+// useQueue* hooks refresh, everything else is a stub.
+export function fakeQueue(
   items: QueueItem[] = [],
   history: HistoryItem[] = [],
   seeds: SeedItem[] = [],
 ): DownloadQueue {
+  const em = new EventEmitter();
+  let hist = [...history];
   const stub = {
     getItems: () => items,
-    getHistory: () => history,
+    getHistory: () => hist,
     getSeeds: () => seeds,
     getSeed: (id: string) => seeds.find((s) => s.id === id),
-    activeCount: 0,
+    activeCount: items.filter((i) => i.status === "downloading").length,
     seedingCount: 0,
-    on: () => stub,
-    off: () => stub,
+    on: (ev: string, cb: () => void) => (em.on(ev, cb), stub),
+    off: (ev: string, cb: () => void) => (em.off(ev, cb), stub),
+    removeHistory: (id: string): void => {
+      hist = hist.filter((h) => h.id !== id);
+      em.emit("update");
+    },
+    clearHistory: (): void => {
+      hist = [];
+      em.emit("update");
+    },
+    cancel: (): void => {},
+    togglePause: (): void => {},
+    retryFailed: (): void => {},
   };
   return stub as unknown as DownloadQueue;
 }
