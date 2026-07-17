@@ -27,7 +27,8 @@ export function filterResults(
 
       score += 10; // Base score for matching all tokens
 
-      if (name.includes(text)) {
+      const normalizedText = tokens.join(" ");
+      if (name.includes(normalizedText)) {
         score += 50; // Exact substring gets highest boost
       } else {
         // Boost if tokens appear in the same order

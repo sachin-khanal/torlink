@@ -169,7 +169,7 @@ export function Results() {
   const clamped = Math.min(cursor, Math.max(0, results.length - 1));
 
   const searchH = 3;
-  const filterH = mode === "filter" || textFilter ? 1 : 0;
+  const filterH = mode === "filter" || textFilter.trim() ? 1 : 0;
   const panelOuter = resultsPanelOuter(listRows, searchH + filterH);
   const listHeight = Math.max(3, panelOuter - 4);
   const pageJump = Math.max(1, listHeight - 1);
@@ -211,11 +211,21 @@ export function Results() {
         else setMode("search");
         return;
       }
-      if (results.length === 0) return;
-      if (key.downArrow || input === "j") moveTo(wrapStep(clamped, 1, results.length));
-      else if (key.pageUp) moveTo(Math.max(0, clamped - pageJump));
-      else if (key.pageDown) moveTo(Math.min(results.length - 1, clamped + pageJump));
-      else if (key.return) {
+      if (input === "s") {
+        setSort((cur) => nextSort(cur));
+      } else if (input === "z") {
+        setHideDead((on) => !on);
+      } else if (input === "f") {
+        setMode("filter");
+      } else if (results.length === 0) {
+        return;
+      } else if (key.downArrow || input === "j") {
+        moveTo(wrapStep(clamped, 1, results.length));
+      } else if (key.pageUp) {
+        moveTo(Math.max(0, clamped - pageJump));
+      } else if (key.pageDown) {
+        moveTo(Math.min(results.length - 1, clamped + pageJump));
+      } else if (key.return) {
         const r = results[clamped];
         if (r) {
           setDetail(r);
@@ -230,12 +240,6 @@ export function Results() {
       } else if (input === "y") {
         const r = results[clamped];
         if (r) copyResultMagnet(r);
-      } else if (input === "s") {
-        setSort((cur) => nextSort(cur));
-      } else if (input === "z") {
-        setHideDead((on) => !on);
-      } else if (input === "f") {
-        setMode("filter");
       }
     },
     { isActive: focused && mode === "list" },
@@ -473,7 +477,7 @@ export function Results() {
             </>
           )}
         </Panel>
-        {(mode === "filter" || textFilter) && (
+        {(mode === "filter" || textFilter.trim()) && (
           <Box marginLeft={1}>
             <Text color={COLOR.accent}>{`Filter ${ICON.pointer} `}</Text>
             <Box flexGrow={1} minWidth={0}>
@@ -482,9 +486,9 @@ export function Results() {
                   defaultValue={textFilter}
                   width={Math.max(1, contentWidth - 10)}
                   onChange={setTextFilter}
-                  onSubmit={() => setMode("list")}
-                  onExitDown={() => setMode("list")}
-                  onExitLeft={() => setMode("list")}
+                  onSubmit={() => { setTextFilter(textFilter.trim()); setMode("list"); }}
+                  onExitDown={() => { setTextFilter(textFilter.trim()); setMode("list"); }}
+                  onExitLeft={() => { setTextFilter(textFilter.trim()); setMode("list"); }}
                 />
               ) : (
                 <Text wrap="truncate-end">{textFilter}</Text>
